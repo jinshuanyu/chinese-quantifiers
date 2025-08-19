@@ -568,7 +568,7 @@
           stopTimer();
           playCelebration();
           const elapsed = getElapsedMs();
-          showToast(`🎉 恭喜你全部過關！<br>你在 <b>${formatLong(elapsed)}</b> 內全部過關了！`, ()=> showNextFab(true));
+          showToast(`🎉 恭喜過關！<br>你在 <b>${formatLong(elapsed)}</b> 內完成挑戰！`, ()=> showNextFab(true));
           return;
         }
 
@@ -628,4 +628,5 @@
   </script>
 </body>
 </html>
+
 
