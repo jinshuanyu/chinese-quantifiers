@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>中文量詞配對小遊戲</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <style>
+    :root{ --card-pad:10px; }
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, "Inter","Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial;
+      background: linear-gradient(135deg,#a7f3d0,#bfdbfe);
+      margin:0; height:100svh; overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .game-screen{
+      background:#fff; width:min(100vw,1000px); height:calc(100svh - 16px);
+      border-radius:16px; box-shadow:0 15px 30px rgba(0,0,0,.25);
+      position:absolute; inset:0; margin:auto; padding:var(--card-pad);
+      display:flex; flex-direction:column; transition:opacity .5s ease;
+    }
+    /* Title screen */
+    #title-screen{
+      opacity:1; pointer-events:auto;
+      background:linear-gradient(135deg,#FFFDE7,#FFF9C4); border:5px solid #FFECB3;
+      text-align:center; justify-content:center; align-items:center;
+    }
+    #title-screen h1{ font-size:clamp(28px,4.5vw,48px); color:#795548; margin:0 0 .8rem 0; }
+    #title-screen .start-button{
+      padding:1rem 2rem; background:#8BC34A; color:#fff; font-weight:700;
+      font-size:clamp(18px,2.5vw,24px); border:none; border-radius:14px; cursor:pointer;
+      box-shadow:0 8px 15px rgba(0,0,0,.2); display:inline-flex; align-items:center; gap:.6rem;
+    }
+    /* Copyright on title */
+    .credits{
+      position:absolute; left:0; right:0; bottom:10px;
+      text-align:center; font-size:12px; color:#6b7280; pointer-events:none;
+    }
+
+    #game-container{ opacity:0; pointer-events:none; }
+
+    /* Two columns on all screens */
+    .two-cols{
+      display:grid; grid-template-columns: 1fr .42fr; gap:.6rem;
+      flex:1 1 auto; min-height:0;
+    }
+    #questions-container{
+      display:grid; grid-template-rows:repeat(4,1fr); gap:.5rem; min-height:0;
+    }
+    .q-card{
+      background:#e0f2fe; border-radius:14px; box-shadow:0 4px 8px rgba(0,0,0,.08);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:.25rem .4rem; min-height:0;
+    }
+    .q-emoji{ font-size:clamp(20px,4.8vw,38px); line-height:1; margin-bottom:.15rem; }
+    .q-line{ display:flex; align-items:center; gap:.35rem; font-weight:600; color:#1f2937; font-size:clamp(16px,2.9vw,22px); }
+
+    /* Smaller drop box */
+    .drop-target{
+      width:clamp(32px,6.2vw,56px);
+      height:clamp(22px,4.2vw,34px);
+      border:2px dashed #9ca3af; border-radius:8px; background:#fff;
+      display:flex; align-items:center; justify-content:center; transition:all .15s ease;
+      font-size:clamp(14px,2.6vw,18px);
+      padding:0 .25rem;
+    }
+    .drop-target.drag-over{ background:#bfdbfe; border-color:#60a5fa; }
+
+    /* Right column options */
+    #quantifiers-pool{ display:grid; grid-template-rows:repeat(5,1fr); gap:.5rem; min-height:0; }
+    .quantifier-tile{
+      background:#fde68a; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,.08);
+      font-weight:800; color:#1f2937; font-size:clamp(18px,3.6vw,24px);
+      display:flex; align-items:center; justify-content:center;
+      user-select:none; cursor:grab; height:100%; width:100%;
+      transition:transform .12s ease, background .12s ease;
+    }
+    .quantifier-tile:active{ transform:scale(.96); }
+    .quantifier-tile.hide-original{ opacity:0!important; width:0!important; height:0!important; overflow:hidden!important; pointer-events:none; }
+
+    /* Mini toast */
+    #mini-toast{
+      position:fixed; left:50%; transform:translateX(-50%);
+      bottom:calc(12px + env(safe-area-inset-bottom)); z-index:1000;
+      width:min(92vw,360px);
+      background:#111827; color:#fff; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,.25);
+      padding:10px 12px; display:flex; align-items:center; justify-content:space-between;
+      opacity:0; visibility:hidden; transition:opacity .2s ease, visibility .2s ease, transform .2s ease;
+    }
+    #mini-toast.show{ opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+    #mini-toast p{ margin:0; font-size:14px; line-height:1.3; }
+    #toast-ok{
+      margin-left:10px; padding:6px 10px; border:none; border-radius:9px; cursor:pointer;
+      background:#60a5fa; color:#fff; font-weight:700; font-size:13px;
+    }
+
+    /* Next round FAB */
+    #next-round-fab{
+      position:fixed; right:calc(12px + env(safe-area-inset-right)); bottom:calc(12px + env(safe-area-inset-bottom));
+      z-index:1001; padding:10px 14px; border:none; border-radius:12px; cursor:pointer;
+      background:#22c55e; color:#fff; font-weight:800; font-size:14px; box-shadow:0 10px 20px rgba(0,0,0,.2);
+      display:none;
+    }
+
+    .shake{ animation:shake .28s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes shake{
+      0%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}
+    }
+
+    #game-info{ font-size:clamp(14px,2.7vw,18px); }
+  </style>
+</head>
+<body>
+
+  <!-- Front page -->
+  <div id="title-screen" class="game-screen">
+    <h1>量詞配對</h1>
+    <button id="title-start-game-btn" class="start-button">✨ 開始遊戲 ✨</button>
+    <div class="credits">© 2025 Christina Yu. All rights reserved.</div>
+  </div>
+
+  <!-- Game -->
+  <div id="game-container" class="game-screen">
+    <div class="w-full flex items-center justify-between mb-2" id="game-info">
+      <div class="font-bold text-gray-700">回合：<span id="current-round">0</span> / 12</div>
+      <div class="font-bold text-gray-700">分數：<span id="score">0</span></div>
+    </div>
+
+    <div class="two-cols">
+      <div id="questions-container"></div>
+      <div id="quantifiers-pool"></div>
+    </div>
+
+    <button id="next-round-fab">下一回合 ➜</button>
+  </div>
+
+  <!-- Mini toast -->
+  <div id="mini-toast" aria-live="polite">
+    <p id="toast-text">本回合完成！</p>
+    <button id="toast-ok">確定</button>
+  </div>
+
+  <script>
+    window.onload = function () {
+      /* ====== 題庫（12 回合 × 4 題）====== */
+      const gameData = [
+        // 1
+        [
+          { emoji:"🍬", prefix:"一", noun:"糖果", quantifier:"顆" },
+          { emoji:"🧋", prefix:"一", noun:"珍奶",   quantifier:"杯" },
+          { emoji:"🍌", prefix:"一", noun:"香蕉",   quantifier:"根" },
+          { emoji:"🪙", prefix:"一", noun:"硬幣",   quantifier:"枚" },
+        ],
+        // 2
+        [
+          { emoji:"🐮", prefix:"一", noun:"牛",   quantifier:"頭" },
+          { emoji:"🐟", prefix:"一", noun:"魚",   quantifier:"條" },
+          { emoji:"🐈", prefix:"一", noun:"貓",   quantifier:"隻" },
+          { emoji:"🐎", prefix:"一", noun:"馬",   quantifier:"匹" },
+        ],
+        // 3
+        [
+          { emoji:"📖", prefix:"一", noun:"書",   quantifier:"本" },
+          { emoji:"👩‍🏫", prefix:"一", noun:"老師", quantifier:"位" },
+          { emoji:"🏫", prefix:"一", noun:"學校", quantifier:"所" },
+          { emoji:"🔔", prefix:"一", noun:"鐘",   quantifier:"口" },
+        ],
+        // 4
+        [
+          { emoji:"🚗", prefix:"一", noun:"汽車", quantifier:"輛" },
+          { emoji:"🚂", prefix:"一", noun:"火車", quantifier:"列" },
+          { emoji:"💺", prefix:"一", noun:"座位", quantifier:"個" },
+          { emoji:"🎫", prefix:"一", noun:"票",   quantifier:"張" },
+        ],
+        // 5
+        [
+          { emoji:"🧱", prefix:"一", noun:"牆",   quantifier:"堵" },
+          { emoji:"🚪", prefix:"一", noun:"門",   quantifier:"扇" },
+          { emoji:"🪑", prefix:"一", noun:"椅子", quantifier:"張" },
+          { emoji:"🏪", prefix:"一", noun:"店",   quantifier:"家" },
+        ],
+        // 6
+        [
+          { emoji:"🌾", prefix:"一", noun:"米",   quantifier:"粒" },
+          { emoji:"🍚", prefix:"一", noun:"飯",   quantifier:"碗" },
+          { emoji:"🥘", prefix:"一", noun:"菜",   quantifier:"道" },
+          { emoji:"🍴", prefix:"一", noun:"刀叉", quantifier:"副" },
+        ],
+        // 7
+        [
+          { emoji:"🥢", prefix:"一", noun:"筷子", quantifier:"雙" },
+          { emoji:"💡", prefix:"一", noun:"燈",   quantifier:"盞" },
+          { emoji:"🔑", prefix:"一", noun:"鑰匙", quantifier:"把" },
+          { emoji:"🛏", prefix:"一", noun:"棉被", quantifier:"床" },
+        ],
+        // 8
+        [
+          { emoji:"✉️", prefix:"一", noun:"信",   quantifier:"封" },
+          { emoji:"📜", prefix:"一", noun:"文章", quantifier:"篇" },
+          { emoji:"📰", prefix:"一", noun:"新聞", quantifier:"則" },
+          { emoji:"🎶", prefix:"一", noun:"歌",   quantifier:"首" },
+        ],
+        // 9
+        [
+          { emoji:"☁️", prefix:"一", noun:"雲",   quantifier:"朵" },
+          { emoji:"🌈", prefix:"一", noun:"彩虹", quantifier:"道" },
+          { emoji:"🌟", prefix:"一", noun:"星",   quantifier:"顆" },
+          { emoji:"🌕", prefix:"一", noun:"明月", quantifier:"輪" },
+        ],
+        // 10
+        [
+          { emoji:"🙂", prefix:"一", noun:"臉",   quantifier:"張" },
+          { emoji:"😢", prefix:"一", noun:"眼淚", quantifier:"滴" },
+          { emoji:"💬", prefix:"一", noun:"話",   quantifier:"句" },
+          { emoji:"♥️", prefix:"一", noun:"心",   quantifier:"顆" },
+        ],
+        // 11
+        [
+          { emoji:"🛩", prefix:"一", noun:"飛機", quantifier:"架" },
+          { emoji:"🛶", prefix:"一", noun:"船",   quantifier:"艘" },
+          { emoji:"🍃", prefix:"一", noun:"扁舟", quantifier:"葉" },
+          { emoji:"🌬", prefix:"一", noun:"輕煙", quantifier:"縷" },
+        ],
+        // 12
+        [
+          { emoji:"🖼", prefix:"一", noun:"畫",   quantifier:"幅" },
+          { emoji:"📝", prefix:"一", noun:"詩",   quantifier:"首" },
+          { emoji:"🎭", prefix:"一", noun:"戲",   quantifier:"齣" },
+          { emoji:"😭", prefix:"兩", noun:"熱淚", quantifier:"行" },
+        ],
+      ];
+
+      let currentRound = 0;
+      let score = 0;
+      let currentQuestions = [];
+      let answeredThisRound = 0;
+
+      let activeDraggedDesktopElement = null;
+      // touch-drag shared vars
+      let currentTouchDraggedElement = null, touchVisualClone = null, currentTouchOffsetX = 0, currentTouchOffsetY = 0;
+
+      const currentRoundSpan = document.getElementById("current-round");
+      const scoreSpan = document.getElementById("score");
+      const questionsContainer = document.getElementById("questions-container");
+      const quantifiersPool = document.getElementById("quantifiers-pool");
+
+      const gameContainer = document.getElementById("game-container");
+      const titleScreen = document.getElementById("title-screen");
+      const titleStartGameBtn = document.getElementById("title-start-game-btn");
+
+      // Mini toast & FAB
+      const miniToast = document.getElementById("mini-toast");
+      const toastText = document.getElementById("toast-text");
+      const toastOk = document.getElementById("toast-ok");
+      const nextFab = document.getElementById("next-round-fab");
+
+      // Sounds
+      const correctSynth = new Tone.PolySynth(Tone.Synth,{oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1,sustain:0.1,release:0.1}}).toDestination();
+      const incorrectSynth = new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.01,decay:0.2,sustain:0.05,release:0.1}}).toDestination();
+      const gameStartSynth = new Tone.Synth({oscillator:{type:"triangle"},envelope:{attack:0.05,decay:0.3,sustain:0.2,release:0.5}}).toDestination();
+
+      function showToast(message, onConfirm){
+        toastText.innerHTML = message;
+        miniToast.classList.add('show');
+        const handler = () => {
+          miniToast.classList.remove('show');
+          toastOk.removeEventListener('click', handler);
+          if (onConfirm) onConfirm();
+        };
+        toastOk.addEventListener('click', handler);
+      }
+
+      function showNextFab(isFinal=false){
+        nextFab.textContent = isFinal ? "回首頁 ⭮" : "下一回合 ➜";
+        nextFab.style.display = "inline-block";
+        nextFab.onclick = () => {
+          nextFab.style.display = "none";
+          if(isFinal){
+            gameContainer.style.opacity='0'; gameContainer.style.pointerEvents='none';
+            setTimeout(()=>{ titleScreen.style.opacity='1'; titleScreen.style.pointerEvents='auto'; initialize(); }, 300);
+          }else{
+            loadRound();
+          }
+        };
+      }
+
+      function shuffleArray(arr){
+        for(let i=arr.length-1;i>0;i--){
+          const j = Math.floor(Math.random()*(i+1));
+          [arr[i],arr[j]]=[arr[j],arr[i]];
+        }
+        return arr;
+      }
+
+      function handleQuantifierDrop(dropTarget, droppedQuantifier, originEl=null){
+        const correct = dropTarget.dataset.correctQuantifier;
+        if(droppedQuantifier===correct){
+          dropTarget.textContent = droppedQuantifier;
+          dropTarget.style.borderStyle="solid";
+          dropTarget.style.borderColor="#16a34a";
+          dropTarget.style.background="#bbf7d0";
+          dropTarget.style.color="#065f46";
+
+          if(originEl){ originEl.remove(); }
+          else{
+            const toRemove = document.querySelector(`.quantifier-tile[data-quantifier="${droppedQuantifier}"]`);
+            if(toRemove) toRemove.remove();
+          }
+
+          score += 10; scoreSpan.textContent = score;
+
+          dropTarget.removeEventListener('drop', handleDrop);
+          dropTarget.removeEventListener('dragover', handleDragOver);
+          dropTarget.removeEventListener('dragleave', handleDragLeave);
+
+          correctSynth.triggerAttackRelease(["C5","E5","G5"],"8n");
+
+          answeredThisRound++;
+          if(answeredThisRound===4){
+            if(currentRound===gameData.length){
+              showToast(`🎉 全部完成！總分：${score} 分。`, () => showNextFab(true));
+            }else{
+              showToast("本回合完成！", () => showNextFab(false));
+            }
+          }
+        }else{
+          if(originEl){
+            originEl.classList.remove('hide-original');
+            originEl.classList.add('shake');
+            originEl.addEventListener('animationend',()=>originEl.classList.remove('shake'),{once:true});
+          }
+          incorrectSynth.triggerAttackRelease("C3","16n");
+        }
+      }
+
+      // Desktop DnD
+      function handleDragStart(e){
+        activeDraggedDesktopElement = e.target;
+        e.dataTransfer.setData('text/plain', e.target.dataset.quantifier);
+        e.dataTransfer.effectAllowed = "move";
+      }
+      function handleDragEnd(){ activeDraggedDesktopElement=null; }
+      function handleDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect="move"; e.target.classList.add('drag-over'); }
+      function handleDragLeave(e){ e.target.classList.remove('drag-over'); }
+      function handleDrop(e){
+        e.preventDefault(); e.target.classList.remove('drag-over');
+        const q = e.dataTransfer.getData('text/plain');
+        handleQuantifierDrop(e.target, q, activeDraggedDesktopElement);
+      }
+
+      // Touch DnD
+      function handleTouchStart(e){
+        e.preventDefault();
+        const touch = e.touches[0];
+        currentTouchDraggedElement = e.target;
+        currentTouchDraggedElement.classList.add('hide-original');
+
+        touchVisualClone = document.createElement('div');
+        touchVisualClone.textContent = currentTouchDraggedElement.textContent;
+        touchVisualClone.className = 'quantifier-tile';
+        touchVisualClone.style.position='fixed';
+        touchVisualClone.style.zIndex='9999';
+        touchVisualClone.style.pointerEvents='none';
+        touchVisualClone.style.width='64px'; touchVisualClone.style.height='40px';
+        touchVisualClone.style.display='flex'; touchVisualClone.style.alignItems='center'; touchVisualClone.style.justifyContent='center';
+        touchVisualClone.style.background='#fcd34d'; touchVisualClone.style.border='2px solid #3b82f6';
+        touchVisualClone.style.borderRadius='10px'; touchVisualClone.style.boxShadow='0 10px 20px rgba(0,0,0,.2)';
+        document.body.appendChild(touchVisualClone);
+
+        const rect = currentTouchDraggedElement.getBoundingClientRect();
+        currentTouchOffsetX = touch.clientX - rect.left;
+        currentTouchOffsetY = touch.clientY - rect.top;
+
+        touchVisualClone.style.left = (touch.clientX - currentTouchOffsetX) + 'px';
+        touchVisualClone.style.top  = (touch.clientY - currentTouchOffsetY) + 'px';
+      }
+      function handleTouchMove(e){
+        e.preventDefault();
+        if(!touchVisualClone) return;
+        const t = e.touches[0];
+        touchVisualClone.style.left = (t.clientX - currentTouchOffsetX) + 'px';
+        touchVisualClone.style.top  = (t.clientY - currentTouchOffsetY) + 'px';
+
+        document.querySelectorAll('.drop-target').forEach(target=>{
+          const r = target.getBoundingClientRect();
+          if(t.clientX>r.left && t.clientX<r.right && t.clientY>r.top && t.clientY<r.bottom) target.classList.add('drag-over');
+          else target.classList.remove('drag-over');
+        });
+      }
+      function handleTouchEnd(e){
+        e.preventDefault();
+        if(!touchVisualClone) return;
+        const t = e.changedTouches[0];
+        let dropped=false;
+        document.querySelectorAll('.drop-target').forEach(target=>{
+          target.classList.remove('drag-over');
+          const r = target.getBoundingClientRect();
+          if(!dropped && t.clientX>r.left && t.clientX<r.right && t.clientY>r.top && t.clientY<r.bottom){
+            handleQuantifierDrop(target, currentTouchDraggedElement.dataset.quantifier, currentTouchDraggedElement);
+            dropped=true;
+          }
+        });
+        if(touchVisualClone && touchVisualClone.parentNode) touchVisualClone.parentNode.removeChild(touchVisualClone);
+        touchVisualClone=null;
+        if(!dropped && currentTouchDraggedElement){
+          currentTouchDraggedElement.classList.remove('hide-original');
+        }
+        currentTouchDraggedElement=null;
+      }
+
+      function initialize(){
+        currentRound=0; score=0; answeredThisRound=0;
+        currentRoundSpan.textContent=currentRound; scoreSpan.textContent=score;
+        questionsContainer.innerHTML=""; quantifiersPool.innerHTML="";
+        nextFab.style.display="none";
+      }
+
+      async function startGame(){
+        try{ await Tone.start(); }catch(e){ /* ignore audio fail */ }
+        titleScreen.style.opacity='0';
+        titleScreen.style.pointerEvents='none';   /* ← 修正重點 */
+        setTimeout(()=>{
+          gameContainer.style.opacity='1';
+          gameContainer.style.pointerEvents='auto'; /* ← 修正重點 */
+        }, 300);
+        initialize(); try{ gameStartSynth.triggerAttackRelease("C5","8n"); }catch(e){}
+        loadRound();
+      }
+
+      function loadRound(){
+        currentRound++;
+        currentRoundSpan.textContent=currentRound;
+        answeredThisRound=0;
+        questionsContainer.innerHTML=""; quantifiersPool.innerHTML="";
+        nextFab.style.display="none";
+
+        if(currentRound>gameData.length){
+          showToast(`🎉 全部完成！總分：${score} 分。`, ()=> showNextFab(true));
+          return;
+        }
+
+        currentQuestions = [...gameData[currentRound-1]];
+
+        // Left: 4 questions
+        currentQuestions.forEach((q)=>{
+          const card = document.createElement('div');
+          card.className = 'q-card';
+          card.innerHTML = `
+            <div class="q-emoji">${q.emoji}</div>
+            <div class="q-line">
+              <span>${q.prefix}</span>
+              <span class="drop-target" data-correct-quantifier="${q.quantifier}"></span>
+              <span>${q.noun}</span>
+            </div>
+          `;
+          questionsContainer.appendChild(card);
+          const target = card.querySelector('.drop-target');
+          target.addEventListener('dragover', handleDragOver);
+          target.addEventListener('dragleave', handleDragLeave);
+          target.addEventListener('drop', handleDrop);
+        });
+
+        // Right: 4 correct + 1 distracter
+        const correctQ = currentQuestions.map(q=>q.quantifier);
+        const allQ = gameData.flat().map(q=>q.quantifier);
+        let distracter = null;
+        while(true){
+          const r = allQ[Math.floor(Math.random()*allQ.length)];
+          if(!correctQ.includes(r)){ distracter = r; break; }
+        }
+        const options = shuffleArray([...correctQ, distracter]);
+
+        options.forEach(qf=>{
+          const tile = document.createElement('div');
+          tile.className = 'quantifier-tile';
+          tile.textContent = qf;
+          tile.setAttribute('draggable','true');
+          tile.dataset.quantifier = qf;
+          quantifiersPool.appendChild(tile);
+
+          tile.addEventListener('dragstart', handleDragStart);
+          tile.addEventListener('dragend', handleDragEnd);
+          tile.addEventListener('touchstart', handleTouchStart, {passive:false});
+          tile.addEventListener('touchmove',  handleTouchMove,  {passive:false});
+          tile.addEventListener('touchend',   handleTouchEnd,   {passive:false});
+        });
+      }
+
+      titleStartGameBtn.addEventListener('click', startGame);
+      initialize();
+    };
+  </script>
+</body>
+</html>
