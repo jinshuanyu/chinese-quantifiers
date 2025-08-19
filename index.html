@@ -53,31 +53,55 @@
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       padding:.25rem .4rem; min-height:0;
     }
-    .q-emoji{ font-size:clamp(20px,4.8vw,38px); line-height:1; margin-bottom:.15rem; }
-    .q-line{ display:flex; align-items:center; gap:.35rem; font-weight:600; color:#1f2937; font-size:clamp(16px,2.9vw,22px); }
+    .q-emoji{ font-size:clamp(24px,4.8vw,44px); line-height:1; margin-bottom:.15rem; }
+    .q-line{ display:flex; align-items:center; gap:.4rem; font-weight:700; color:#1f2937; font-size:clamp(18px,3.6vw,24px); }
 
-    /* Smaller drop box */
+    /* Drop box (bigger, reactive) */
     .drop-target{
-      width:clamp(32px,6.2vw,56px);
-      height:clamp(22px,4.2vw,34px);
-      border:2px dashed #9ca3af; border-radius:8px; background:#fff;
-      display:flex; align-items:center; justify-content:center; transition:all .15s ease;
-      font-size:clamp(14px,2.6vw,18px);
-      padding:0 .25rem;
+      position:relative;
+      width:clamp(40px,7.5vw,68px);
+      height:clamp(28px,5.6vw,42px);
+      border:2px dashed #9ca3af; border-radius:10px; background:#fff;
+      display:flex; align-items:center; justify-content:center; transition:all .12s ease;
+      font-size:clamp(16px,3vw,20px);
+      padding:0 .3rem; cursor:pointer;
+      touch-action:none; /* mobile drag fix */
     }
-    .drop-target.drag-over{ background:#bfdbfe; border-color:#60a5fa; }
+    .drop-target.drag-over{
+      background:#dbeafe; border-color:#2563eb; border-width:3px;
+      box-shadow:0 0 0 3px rgba(37,99,235,.18) inset, 0 0 0 2px rgba(37,99,235,.35);
+    }
+    /* 底下高亮線 */
+    .drop-target::after{
+      content:""; position:absolute; left:6px; right:6px; bottom:4px; height:0;
+      border-bottom:3px solid transparent; transition:border-color .12s ease;
+      pointer-events:none;
+    }
+    .drop-target.drag-over::after{ border-color:#2563eb; }
+    /* 當點按選了右邊選項時，所有空格提示可放 */
+    .drop-target.ready{ animation:pulseReady 1.2s ease-in-out infinite; }
+    @keyframes pulseReady{
+      0%{box-shadow:0 0 0 0 rgba(34,197,94,.35)}
+      70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}
+      100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}
+    }
 
     /* Right column options */
     #quantifiers-pool{ display:grid; grid-template-rows:repeat(5,1fr); gap:.5rem; min-height:0; }
     .quantifier-tile{
       background:#fde68a; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,.08);
-      font-weight:800; color:#1f2937; font-size:clamp(18px,3.6vw,24px);
+      font-weight:900; color:#1f2937; font-size:clamp(20px,4.2vw,26px);
       display:flex; align-items:center; justify-content:center;
       user-select:none; cursor:grab; height:100%; width:100%;
-      transition:transform .12s ease, background .12s ease;
+      transition:transform .12s ease, background .12s ease, outline .12s ease;
+      touch-action:none; /* mobile drag fix */
     }
     .quantifier-tile:active{ transform:scale(.96); }
     .quantifier-tile.hide-original{ opacity:0!important; width:0!important; height:0!important; overflow:hidden!important; pointer-events:none; }
+    .quantifier-tile.selected{
+      outline:3px solid #22c55e; outline-offset:2px; background:#fef08a;
+      cursor:pointer;
+    }
 
     /* Mini toast */
     #mini-toast{
@@ -109,6 +133,19 @@
     }
 
     #game-info{ font-size:clamp(14px,2.7vw,18px); }
+
+    /* --- Mobile boost: bigger everything --- */
+    @media (max-width:640px){
+      .q-emoji{ font-size:clamp(32px,9vw,64px); }
+      .q-line{ font-size:clamp(20px,5vw,30px); gap:.5rem; }
+      .drop-target{
+        width:clamp(56px,12vw,92px);
+        height:clamp(40px,9vw,64px);
+        font-size:clamp(18px,4.4vw,24px);
+        border-width:3px;
+      }
+      .quantifier-tile{ font-size:clamp(22px,5.2vw,28px); }
+    }
   </style>
 </head>
 <body>
@@ -239,6 +276,8 @@
       let activeDraggedDesktopElement = null;
       // touch-drag shared vars
       let currentTouchDraggedElement = null, touchVisualClone = null, currentTouchOffsetX = 0, currentTouchOffsetY = 0;
+      // tap-to-place selection
+      let selectedTile = null;
 
       const currentRoundSpan = document.getElementById("current-round");
       const scoreSpan = document.getElementById("score");
@@ -293,7 +332,25 @@
         return arr;
       }
 
+      function deselectTile(){
+        if(selectedTile){
+          selectedTile.classList.remove('selected');
+          selectedTile = null;
+          document.querySelectorAll('.drop-target').forEach(t=>t.classList.remove('ready'));
+        }
+      }
+      function selectTile(tile){
+        if(selectedTile===tile){ deselectTile(); return; }
+        if(selectedTile){ deselectTile(); }
+        selectedTile = tile;
+        tile.classList.add('selected');
+        document.querySelectorAll('.drop-target').forEach(t=>t.classList.add('ready'));
+      }
+
       function handleQuantifierDrop(dropTarget, droppedQuantifier, originEl=null){
+        // 已填寫就不覆蓋
+        if(dropTarget.textContent && dropTarget.textContent.trim().length>0) return;
+
         const correct = dropTarget.dataset.correctQuantifier;
         if(droppedQuantifier===correct){
           dropTarget.textContent = droppedQuantifier;
@@ -307,6 +364,7 @@
             const toRemove = document.querySelector(`.quantifier-tile[data-quantifier="${droppedQuantifier}"]`);
             if(toRemove) toRemove.remove();
           }
+          deselectTile();
 
           score += 10; scoreSpan.textContent = score;
 
@@ -414,18 +472,33 @@
         currentRoundSpan.textContent=currentRound; scoreSpan.textContent=score;
         questionsContainer.innerHTML=""; quantifiersPool.innerHTML="";
         nextFab.style.display="none";
+        deselectTile();
       }
 
       async function startGame(){
         try{ await Tone.start(); }catch(e){ /* ignore audio fail */ }
         titleScreen.style.opacity='0';
-        titleScreen.style.pointerEvents='none';   /* ← 修正重點 */
+        titleScreen.style.pointerEvents='none';
         setTimeout(()=>{
           gameContainer.style.opacity='1';
-          gameContainer.style.pointerEvents='auto'; /* ← 修正重點 */
+          gameContainer.style.pointerEvents='auto';
         }, 300);
         initialize(); try{ gameStartSynth.triggerAttackRelease("C5","8n"); }catch(e){}
         loadRound();
+      }
+
+      function addTapHandlers(){
+        // 選項：點一下選擇
+        document.querySelectorAll('.quantifier-tile').forEach(tile=>{
+          tile.addEventListener('click', ()=> selectTile(tile));
+        });
+        // 投放框：點一下放上去（若有已選）
+        document.querySelectorAll('.drop-target').forEach(target=>{
+          target.addEventListener('click', ()=> {
+            if(!selectedTile) return;
+            handleQuantifierDrop(target, selectedTile.dataset.quantifier, selectedTile);
+          });
+        });
       }
 
       function loadRound(){
@@ -434,6 +507,7 @@
         answeredThisRound=0;
         questionsContainer.innerHTML=""; quantifiersPool.innerHTML="";
         nextFab.style.display="none";
+        deselectTile();
 
         if(currentRound>gameData.length){
           showToast(`🎉 全部完成！總分：${score} 分。`, ()=> showNextFab(true));
@@ -485,6 +559,9 @@
           tile.addEventListener('touchmove',  handleTouchMove,  {passive:false});
           tile.addEventListener('touchend',   handleTouchEnd,   {passive:false});
         });
+
+        // 啟用點按備援
+        addTapHandlers();
       }
 
       titleStartGameBtn.addEventListener('click', startGame);
