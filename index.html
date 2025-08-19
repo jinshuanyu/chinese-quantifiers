@@ -112,7 +112,7 @@
       cursor:pointer;
     }
 
-    /* 中央提示卡（取代細長底部條） */
+    /* 中央提示卡 */
     #mini-toast{
       position:fixed; left:50%; top:50%;
       transform:translate(-50%, -50%) scale(.98);
@@ -172,9 +172,11 @@
 
   <!-- 遊戲主畫面 -->
   <div id="game-container" class="game-screen">
-    <div class="w-full flex items-center justify-between mb-2" id="game-info">
-      <div class="font-bold text-gray-700">回合：<span id="current-round">0</span> / 12</div>
-      <div class="font-bold text-gray-700">分數：<span id="score">0</span></div>
+    <!-- 這裡調整成三欄：回合 / 時間 / 分數 -->
+    <div class="w-full flex items-center mb-2" id="game-info">
+      <div class="basis-1/3 font-bold text-gray-700">回合：<span id="current-round">0</span> / 12</div>
+      <div class="basis-1/3 text-center font-bold text-gray-700">時間：<span id="timer">00:00</span></div>
+      <div class="basis-1/3 text-right font-bold text-gray-700">分數：<span id="score">0</span></div>
     </div>
 
     <div class="two-cols">
@@ -285,6 +287,10 @@
       let score = 0;
       let answeredThisRound = 0;
 
+      // 計時
+      let startTime = null, timerInterval = null;
+      const timerSpan = document.getElementById("timer");
+
       let activeDraggedDesktopElement = null;
       // 觸控拖曳
       let currentTouchDraggedElement = null, touchVisualClone = null, currentTouchOffsetX = 0, currentTouchOffsetY = 0;
@@ -313,13 +319,41 @@
       const celebrateSynth = new Tone.Synth({oscillator:{type:"triangle"},envelope:{attack:0.01,decay:0.2,sustain:0.2,release:0.6}}).toDestination();
 
       function playCelebration(){
-        // 小和弦 + 連續四音，簡單的慶祝音效
         try{
           correctSynth.triggerAttackRelease(["C5","E5","G5","C6"],"8n");
           const seq = ["E5","G5","C6","E6"];
           seq.forEach((n,i)=> setTimeout(()=> celebrateSynth.triggerAttackRelease(n,"8n"), 150 + i*170));
         }catch(e){}
       }
+
+      /* ===== 計時工具 ===== */
+      function pad2(n){ return n.toString().padStart(2,'0'); }
+      function formatShort(ms){
+        const t = Math.max(0, Math.floor(ms/1000));
+        const h = Math.floor(t/3600);
+        const m = Math.floor((t%3600)/60);
+        const s = t%60;
+        return h>0 ? `${pad2(h)}:${pad2(m)}:${pad2(s)}` : `${pad2(m)}:${pad2(s)}`;
+      }
+      function formatLong(ms){
+        const t = Math.max(0, Math.floor(ms/1000));
+        const h = Math.floor(t/3600);
+        const m = Math.floor((t%3600)/60);
+        const s = t%60;
+        if(h>0) return `${h} 小時 ${m} 分 ${s} 秒`;
+        if(m>0) return `${m} 分 ${s} 秒`;
+        return `${s} 秒`;
+      }
+      function startTimer(){
+        startTime = Date.now();
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 500);
+      }
+      function stopTimer(){
+        if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
+      }
+      function getElapsedMs(){ return startTime ? (Date.now()-startTime) : 0; }
+      function updateTimer(){ timerSpan.textContent = formatShort(getElapsedMs()); }
 
       function showToast(message, onConfirm){
         toastText.innerHTML = message;
@@ -332,7 +366,7 @@
         toastOk.addEventListener('click', handler);
       }
       function showNextFab(isFinal=false){
-        nextFab.textContent = isFinal ? "回首頁 ⭮" : "下一回合 ➜";
+        nextFab.textContent = isFinal ? "再挑戰一次" : "下一回合";
         nextFab.style.display = "inline-block";
         nextFab.onclick = () => {
           nextFab.style.display = "none";
@@ -390,9 +424,11 @@
           answeredThisRound++;
           if(answeredThisRound===4){
             if(currentRound===12){
-              // 全破：慶祝音效 + 指定訊息
+              // 全破：慶祝音效 + 指定訊息（含時間）
+              stopTimer();
               playCelebration();
-              showToast("🎉 恭喜你全部過關！", () => showNextFab(true));
+              const elapsed = getElapsedMs();
+              showToast(`🎉 恭喜你全部過關！<br>你在 <b>${formatLong(elapsed)}</b> 內全部過關了！`, () => showNextFab(true));
             }else{
               showToast("過關！太棒了！", () => showNextFab(false));
             }
@@ -484,6 +520,7 @@
 
       function initialize(){
         currentRound=0; score=0; answeredThisRound=0;
+        stopTimer(); startTime=null; timerSpan.textContent="00:00";
         currentRoundSpan.textContent=currentRound; scoreSpan.textContent=score;
         questionsContainer.innerHTML=""; quantifiersPool.innerHTML="";
         nextFab.style.display="none";
@@ -500,6 +537,7 @@
         }, 300);
         try{ gameStartSynth.triggerAttackRelease("C5","8n"); }catch(e){}
         initialize();
+        startTimer();
         loadRound();
       }
 
@@ -526,8 +564,11 @@
         deselectTile();
 
         if(currentRound>gameData.length){
+          // 如果不小心再進一步，也要安全收尾
+          stopTimer();
           playCelebration();
-          showToast("🎉 恭喜你全部過關！", ()=> showNextFab(true));
+          const elapsed = getElapsedMs();
+          showToast(`🎉 恭喜你全部過關！<br>你在 <b>${formatLong(elapsed)}</b> 內全部過關了！`, ()=> showNextFab(true));
           return;
         }
 
@@ -587,5 +628,3 @@
   </script>
 </body>
 </html>
-
-
