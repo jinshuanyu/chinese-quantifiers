@@ -39,7 +39,7 @@
 
     #game-container{ opacity:0; pointer-events:none; }
 
-    /* 左右兩欄：所有裝置都維持左右雙欄 */
+    /* 左右兩欄 */
     .two-cols{
       display:grid; grid-template-columns: 1fr .42fr; gap:.6rem;
       flex:1 1 auto; min-height:0;
@@ -112,20 +112,21 @@
       cursor:pointer;
     }
 
-    /* 完成提示 toast */
+    /* 中央提示卡（取代細長底部條） */
     #mini-toast{
-      position:fixed; left:50%; transform:translateX(-50%);
-      bottom:calc(12px + env(safe-area-inset-bottom)); z-index:1000;
-      width:min(92vw,360px);
-      background:#111827; color:#fff; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,.25);
-      padding:10px 12px; display:flex; align-items:center; justify-content:space-between;
+      position:fixed; left:50%; top:50%;
+      transform:translate(-50%, -50%) scale(.98);
+      z-index:1000; width:min(92vw,420px);
+      background:#111827; color:#fff; border-radius:14px; box-shadow:0 12px 28px rgba(0,0,0,.25);
+      padding:16px 18px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;
       opacity:0; visibility:hidden; transition:opacity .2s ease, visibility .2s ease, transform .2s ease;
     }
-    #mini-toast.show{ opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
-    #mini-toast p{ margin:0; font-size:14px; line-height:1.3; }
+    #mini-toast.show{ opacity:1; visibility:visible; transform:translate(-50%, -50%) scale(1); }
+    #toast-text{ margin:0; font-size:clamp(18px,4.6vw,22px); line-height:1.4; font-weight:800; }
     #toast-ok{
-      margin-left:10px; padding:6px 10px; border:none; border-radius:9px; cursor:pointer;
-      background:#60a5fa; color:#fff; font-weight:700; font-size:13px;
+      width:100%; max-width:260px;
+      padding:10px 12px; border:none; border-radius:10px; cursor:pointer;
+      background:#60a5fa; color:#fff; font-weight:800; font-size:15px;
     }
 
     /* 右下角 下一回合 */
@@ -147,7 +148,7 @@
       .q-emoji{ font-size: clamp(36px, 11vw, 76px); }
       .q-line{  font-size: clamp(22px, 6.6vw, 34px); gap:.6rem; }
 
-      .quantifier-tile{ font-size: clamp(18px, 5vw, 24px); } /* 讓題目明顯更大 */
+      .quantifier-tile{ font-size: clamp(18px, 5vw, 24px); }
 
       .drop-target{
         width: clamp(64px, 14vw, 104px);
@@ -155,6 +156,8 @@
         font-size: clamp(20px, 5vw, 24px);
         border-width:3px;
       }
+
+      #toast-text{ font-size: clamp(20px, 6vw, 24px); }
     }
   </style>
 </head>
@@ -182,8 +185,8 @@
     <button id="next-round-fab">下一回合 ➜</button>
   </div>
 
-  <!-- 小型提示框 -->
-  <div id="mini-toast" aria-live="polite">
+  <!-- 中央提示卡 -->
+  <div id="mini-toast" role="dialog" aria-live="polite" aria-modal="true">
     <p id="toast-text">本回合完成！</p>
     <button id="toast-ok">確定</button>
   </div>
@@ -307,6 +310,16 @@
       const correctSynth = new Tone.PolySynth(Tone.Synth,{oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1,sustain:0.1,release:0.1}}).toDestination();
       const incorrectSynth = new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.01,decay:0.2,sustain:0.05,release:0.1}}).toDestination();
       const gameStartSynth = new Tone.Synth({oscillator:{type:"triangle"},envelope:{attack:0.05,decay:0.3,sustain:0.2,release:0.5}}).toDestination();
+      const celebrateSynth = new Tone.Synth({oscillator:{type:"triangle"},envelope:{attack:0.01,decay:0.2,sustain:0.2,release:0.6}}).toDestination();
+
+      function playCelebration(){
+        // 小和弦 + 連續四音，簡單的慶祝音效
+        try{
+          correctSynth.triggerAttackRelease(["C5","E5","G5","C6"],"8n");
+          const seq = ["E5","G5","C6","E6"];
+          seq.forEach((n,i)=> setTimeout(()=> celebrateSynth.triggerAttackRelease(n,"8n"), 150 + i*170));
+        }catch(e){}
+      }
 
       function showToast(message, onConfirm){
         toastText.innerHTML = message;
@@ -377,7 +390,9 @@
           answeredThisRound++;
           if(answeredThisRound===4){
             if(currentRound===12){
-              showToast(`🎉 全部完成！總分：${score} 分。`, () => showNextFab(true));
+              // 全破：慶祝音效 + 指定訊息
+              playCelebration();
+              showToast("🎉 恭喜你全部過關！", () => showNextFab(true));
             }else{
               showToast("本回合完成！", () => showNextFab(false));
             }
@@ -483,7 +498,8 @@
           gameContainer.style.opacity='1';
           gameContainer.style.pointerEvents='auto';
         }, 300);
-        initialize(); try{ gameStartSynth.triggerAttackRelease("C5","8n"); }catch(e){}
+        try{ gameStartSynth.triggerAttackRelease("C5","8n"); }catch(e){}
+        initialize();
         loadRound();
       }
 
@@ -510,7 +526,8 @@
         deselectTile();
 
         if(currentRound>gameData.length){
-          showToast(`🎉 全部完成！總分：${score} 分。`, ()=> showNextFab(true));
+          playCelebration();
+          showToast("🎉 恭喜你全部過關！", ()=> showNextFab(true));
           return;
         }
 
@@ -535,7 +552,7 @@
           target.addEventListener('drop', handleDrop);
         });
 
-        // 右欄：4 正確 + 1 干擾（順序打散）
+        // 右欄：4 正確 + 1 干擾
         const correctQ = currentQuestions.map(q=>q.quantifier);
         const allQ = gameData.flat().map(q=>q.quantifier);
         let distracter = null;
