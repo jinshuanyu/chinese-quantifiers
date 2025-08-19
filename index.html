@@ -20,7 +20,7 @@
       position:absolute; inset:0; margin:auto; padding:var(--card-pad);
       display:flex; flex-direction:column; transition:opacity .5s ease;
     }
-    /* Title screen */
+    /* 首頁 */
     #title-screen{
       opacity:1; pointer-events:auto;
       background:linear-gradient(135deg,#FFFDE7,#FFF9C4); border:5px solid #FFECB3;
@@ -32,7 +32,6 @@
       font-size:clamp(18px,2.5vw,24px); border:none; border-radius:14px; cursor:pointer;
       box-shadow:0 8px 15px rgba(0,0,0,.2); display:inline-flex; align-items:center; gap:.6rem;
     }
-    /* Copyright on title */
     .credits{
       position:absolute; left:0; right:0; bottom:10px;
       text-align:center; font-size:12px; color:#6b7280; pointer-events:none;
@@ -40,7 +39,7 @@
 
     #game-container{ opacity:0; pointer-events:none; }
 
-    /* Two columns on all screens */
+    /* 左右兩欄：所有裝置都維持左右雙欄 */
     .two-cols{
       display:grid; grid-template-columns: 1fr .42fr; gap:.6rem;
       flex:1 1 auto; min-height:0;
@@ -53,32 +52,41 @@
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       padding:.25rem .4rem; min-height:0;
     }
-    .q-emoji{ font-size:clamp(24px,4.8vw,44px); line-height:1; margin-bottom:.15rem; }
-    .q-line{ display:flex; align-items:center; gap:.4rem; font-weight:700; color:#1f2937; font-size:clamp(18px,3.6vw,24px); }
 
-    /* Drop box (bigger, reactive) */
+    /* 題目更大（emoji + 文字） */
+    .q-emoji{
+      font-size: clamp(28px, 6vw, 56px);
+      line-height: 1;
+      margin-bottom: .15rem;
+    }
+    .q-line{
+      display:flex; align-items:center; gap:.5rem;
+      font-weight: 800; color:#1f2937;
+      font-size: clamp(20px, 4.8vw, 28px); /* 一定比右欄選項大 */
+    }
+
+    /* 投放框：加大、可視回饋、手機好點 */
     .drop-target{
       position:relative;
-      width:clamp(40px,7.5vw,68px);
-      height:clamp(28px,5.6vw,42px);
+      width: clamp(46px, 8.2vw, 76px);
+      height: clamp(32px, 6.2vw, 48px);
       border:2px dashed #9ca3af; border-radius:10px; background:#fff;
-      display:flex; align-items:center; justify-content:center; transition:all .12s ease;
-      font-size:clamp(16px,3vw,20px);
-      padding:0 .3rem; cursor:pointer;
-      touch-action:none; /* mobile drag fix */
+      display:flex; align-items:center; justify-content:center;
+      transition: all .12s ease;
+      font-size: clamp(18px, 3.6vw, 22px);
+      padding:0 .35rem; cursor:pointer;
+      touch-action:none; /* 手機拖拉修正 */
     }
     .drop-target.drag-over{
       background:#dbeafe; border-color:#2563eb; border-width:3px;
       box-shadow:0 0 0 3px rgba(37,99,235,.18) inset, 0 0 0 2px rgba(37,99,235,.35);
     }
-    /* 底下高亮線 */
     .drop-target::after{
       content:""; position:absolute; left:6px; right:6px; bottom:4px; height:0;
       border-bottom:3px solid transparent; transition:border-color .12s ease;
       pointer-events:none;
     }
     .drop-target.drag-over::after{ border-color:#2563eb; }
-    /* 當點按選了右邊選項時，所有空格提示可放 */
     .drop-target.ready{ animation:pulseReady 1.2s ease-in-out infinite; }
     @keyframes pulseReady{
       0%{box-shadow:0 0 0 0 rgba(34,197,94,.35)}
@@ -86,15 +94,16 @@
       100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}
     }
 
-    /* Right column options */
+    /* 右欄選項（比題目略小） */
     #quantifiers-pool{ display:grid; grid-template-rows:repeat(5,1fr); gap:.5rem; min-height:0; }
     .quantifier-tile{
       background:#fde68a; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,.08);
-      font-weight:900; color:#1f2937; font-size:clamp(20px,4.2vw,26px);
+      font-weight:900; color:#1f2937;
+      font-size: clamp(18px, 3.8vw, 24px);
       display:flex; align-items:center; justify-content:center;
       user-select:none; cursor:grab; height:100%; width:100%;
       transition:transform .12s ease, background .12s ease, outline .12s ease;
-      touch-action:none; /* mobile drag fix */
+      touch-action:none; /* 手機拖拉修正 */
     }
     .quantifier-tile:active{ transform:scale(.96); }
     .quantifier-tile.hide-original{ opacity:0!important; width:0!important; height:0!important; overflow:hidden!important; pointer-events:none; }
@@ -103,7 +112,7 @@
       cursor:pointer;
     }
 
-    /* Mini toast */
+    /* 完成提示 toast */
     #mini-toast{
       position:fixed; left:50%; transform:translateX(-50%);
       bottom:calc(12px + env(safe-area-inset-bottom)); z-index:1000;
@@ -119,7 +128,7 @@
       background:#60a5fa; color:#fff; font-weight:700; font-size:13px;
     }
 
-    /* Next round FAB */
+    /* 右下角 下一回合 */
     #next-round-fab{
       position:fixed; right:calc(12px + env(safe-area-inset-right)); bottom:calc(12px + env(safe-area-inset-bottom));
       z-index:1001; padding:10px 14px; border:none; border-radius:12px; cursor:pointer;
@@ -131,33 +140,34 @@
     @keyframes shake{
       0%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}
     }
-
     #game-info{ font-size:clamp(14px,2.7vw,18px); }
 
-    /* --- Mobile boost: bigger everything --- */
+    /* 手機再放大一級（≤640px） */
     @media (max-width:640px){
-      .q-emoji{ font-size:clamp(32px,9vw,64px); }
-      .q-line{ font-size:clamp(20px,5vw,30px); gap:.5rem; }
+      .q-emoji{ font-size: clamp(36px, 11vw, 76px); }
+      .q-line{  font-size: clamp(22px, 6.6vw, 34px); gap:.6rem; }
+
+      .quantifier-tile{ font-size: clamp(18px, 5vw, 24px); } /* 讓題目明顯更大 */
+
       .drop-target{
-        width:clamp(56px,12vw,92px);
-        height:clamp(40px,9vw,64px);
-        font-size:clamp(18px,4.4vw,24px);
+        width: clamp(64px, 14vw, 104px);
+        height: clamp(44px, 10vw, 72px);
+        font-size: clamp(20px, 5vw, 24px);
         border-width:3px;
       }
-      .quantifier-tile{ font-size:clamp(22px,5.2vw,28px); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Front page -->
+  <!-- 首頁 -->
   <div id="title-screen" class="game-screen">
     <h1>量詞配對</h1>
     <button id="title-start-game-btn" class="start-button">✨ 開始遊戲 ✨</button>
     <div class="credits">© 2025 Christina Yu. All rights reserved.</div>
   </div>
 
-  <!-- Game -->
+  <!-- 遊戲主畫面 -->
   <div id="game-container" class="game-screen">
     <div class="w-full flex items-center justify-between mb-2" id="game-info">
       <div class="font-bold text-gray-700">回合：<span id="current-round">0</span> / 12</div>
@@ -172,7 +182,7 @@
     <button id="next-round-fab">下一回合 ➜</button>
   </div>
 
-  <!-- Mini toast -->
+  <!-- 小型提示框 -->
   <div id="mini-toast" aria-live="polite">
     <p id="toast-text">本回合完成！</p>
     <button id="toast-ok">確定</button>
@@ -270,13 +280,12 @@
 
       let currentRound = 0;
       let score = 0;
-      let currentQuestions = [];
       let answeredThisRound = 0;
 
       let activeDraggedDesktopElement = null;
-      // touch-drag shared vars
+      // 觸控拖曳
       let currentTouchDraggedElement = null, touchVisualClone = null, currentTouchOffsetX = 0, currentTouchOffsetY = 0;
-      // tap-to-place selection
+      // 點按備援
       let selectedTile = null;
 
       const currentRoundSpan = document.getElementById("current-round");
@@ -288,13 +297,13 @@
       const titleScreen = document.getElementById("title-screen");
       const titleStartGameBtn = document.getElementById("title-start-game-btn");
 
-      // Mini toast & FAB
+      // Toast & 下一回合
       const miniToast = document.getElementById("mini-toast");
       const toastText = document.getElementById("toast-text");
       const toastOk = document.getElementById("toast-ok");
       const nextFab = document.getElementById("next-round-fab");
 
-      // Sounds
+      // 音效
       const correctSynth = new Tone.PolySynth(Tone.Synth,{oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1,sustain:0.1,release:0.1}}).toDestination();
       const incorrectSynth = new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.01,decay:0.2,sustain:0.05,release:0.1}}).toDestination();
       const gameStartSynth = new Tone.Synth({oscillator:{type:"triangle"},envelope:{attack:0.05,decay:0.3,sustain:0.2,release:0.5}}).toDestination();
@@ -309,7 +318,6 @@
         };
         toastOk.addEventListener('click', handler);
       }
-
       function showNextFab(isFinal=false){
         nextFab.textContent = isFinal ? "回首頁 ⭮" : "下一回合 ➜";
         nextFab.style.display = "inline-block";
@@ -323,14 +331,7 @@
           }
         };
       }
-
-      function shuffleArray(arr){
-        for(let i=arr.length-1;i>0;i--){
-          const j = Math.floor(Math.random()*(i+1));
-          [arr[i],arr[j]]=[arr[j],arr[i]];
-        }
-        return arr;
-      }
+      function shuffleArray(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
 
       function deselectTile(){
         if(selectedTile){
@@ -348,7 +349,6 @@
       }
 
       function handleQuantifierDrop(dropTarget, droppedQuantifier, originEl=null){
-        // 已填寫就不覆蓋
         if(dropTarget.textContent && dropTarget.textContent.trim().length>0) return;
 
         const correct = dropTarget.dataset.correctQuantifier;
@@ -376,7 +376,7 @@
 
           answeredThisRound++;
           if(answeredThisRound===4){
-            if(currentRound===gameData.length){
+            if(currentRound===12){
               showToast(`🎉 全部完成！總分：${score} 分。`, () => showNextFab(true));
             }else{
               showToast("本回合完成！", () => showNextFab(false));
@@ -392,7 +392,7 @@
         }
       }
 
-      // Desktop DnD
+      /* 桌機拖曳 */
       function handleDragStart(e){
         activeDraggedDesktopElement = e.target;
         e.dataTransfer.setData('text/plain', e.target.dataset.quantifier);
@@ -407,7 +407,7 @@
         handleQuantifierDrop(e.target, q, activeDraggedDesktopElement);
       }
 
-      // Touch DnD
+      /* 手機拖曳 */
       function handleTouchStart(e){
         e.preventDefault();
         const touch = e.touches[0];
@@ -476,7 +476,7 @@
       }
 
       async function startGame(){
-        try{ await Tone.start(); }catch(e){ /* ignore audio fail */ }
+        try{ await Tone.start(); }catch(e){}
         titleScreen.style.opacity='0';
         titleScreen.style.pointerEvents='none';
         setTimeout(()=>{
@@ -488,11 +488,11 @@
       }
 
       function addTapHandlers(){
-        // 選項：點一下選擇
+        // 右欄：點一下選擇
         document.querySelectorAll('.quantifier-tile').forEach(tile=>{
           tile.addEventListener('click', ()=> selectTile(tile));
         });
-        // 投放框：點一下放上去（若有已選）
+        // 左欄：點一下投放
         document.querySelectorAll('.drop-target').forEach(target=>{
           target.addEventListener('click', ()=> {
             if(!selectedTile) return;
@@ -514,9 +514,9 @@
           return;
         }
 
-        currentQuestions = [...gameData[currentRound-1]];
+        const currentQuestions = [...gameData[currentRound-1]];
 
-        // Left: 4 questions
+        // 左欄 4 題
         currentQuestions.forEach((q)=>{
           const card = document.createElement('div');
           card.className = 'q-card';
@@ -535,7 +535,7 @@
           target.addEventListener('drop', handleDrop);
         });
 
-        // Right: 4 correct + 1 distracter
+        // 右欄：4 正確 + 1 干擾（順序打散）
         const correctQ = currentQuestions.map(q=>q.quantifier);
         const allQ = gameData.flat().map(q=>q.quantifier);
         let distracter = null;
@@ -560,7 +560,7 @@
           tile.addEventListener('touchend',   handleTouchEnd,   {passive:false});
         });
 
-        // 啟用點按備援
+        // 點按備援啟用
         addTapHandlers();
       }
 
