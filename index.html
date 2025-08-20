@@ -360,10 +360,24 @@
         return candidate;
       }
 
-      /* 核心：放入量詞 */
+      /* 核心：放入量詞（已修：若沒成功填入會還原按鈕） */
       function handleQuantifierDrop(dropTarget, droppedQuantifier, originEl=null){
-        if(!dropTarget) return;
-        if(dropTarget.textContent && dropTarget.textContent.trim().length>0) return;
+        if(!dropTarget){
+          if(originEl){ originEl.classList.remove('hide-original'); }
+          return;
+        }
+
+        // 若此框已經填過：還原來源並給回饋
+        if(dropTarget.textContent && dropTarget.textContent.trim().length>0){
+          if(originEl){ 
+            originEl.classList.remove('hide-original');
+            originEl.classList.add('shake');
+            originEl.addEventListener('animationend',()=>originEl.classList.remove('shake'),{once:true});
+          }
+          dropTarget.classList.add('shake');
+          dropTarget.addEventListener('animationend',()=>dropTarget.classList.remove('shake'),{once:true});
+          return;
+        }
 
         const correct = dropTarget.dataset.correctQuantifier;
         if(droppedQuantifier===correct){
@@ -395,11 +409,14 @@
             }
           }
         }else{
+          // 錯誤：還原來源並抖動
           if(originEl){
             originEl.classList.remove('hide-original');
             originEl.classList.add('shake');
             originEl.addEventListener('animationend',()=>originEl.classList.remove('shake'),{once:true});
           }
+          dropTarget.classList.add('shake');
+          dropTarget.addEventListener('animationend',()=>dropTarget.classList.remove('shake'),{once:true});
           incorrectSynth.triggerAttackRelease("C3","16n");
         }
       }
@@ -407,7 +424,7 @@
       /* 桌機拖曳 */
       function handleDragStart(e){ activeDraggedDesktopElement = e.target; e.dataTransfer.setData('text/plain', e.target.dataset.quantifier); e.dataTransfer.effectAllowed="move"; }
       function handleDragEnd(){ activeDraggedDesktopElement=null; }
-      function handleDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect="move"; /* 由各容器自行加上 drag-over 視覺 */ }
+      function handleDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect="move"; }
 
       /* 手機拖曳 */
       function handleTouchStart(e){
@@ -457,14 +474,8 @@
         document.querySelectorAll('.drop-target').forEach(dt=>dt.classList.remove('drag-over'));
 
         const dt = getDropTargetAtPoint(t.clientX, t.clientY);
-        if(dt){
-          handleQuantifierDrop(dt, currentTouchDraggedElement.dataset.quantifier, currentTouchDraggedElement);
-        }else{
-          // 沒投放成功，還原來源
-          if(currentTouchDraggedElement){
-            currentTouchDraggedElement.classList.remove('hide-original');
-          }
-        }
+        handleQuantifierDrop(dt, currentTouchDraggedElement.dataset.quantifier, currentTouchDraggedElement);
+
         if(touchVisualClone && touchVisualClone.parentNode) touchVisualClone.parentNode.removeChild(touchVisualClone);
         touchVisualClone=null; currentTouchDraggedElement=null;
       }
