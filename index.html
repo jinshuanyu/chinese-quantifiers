@@ -322,7 +322,7 @@
         toastOk.addEventListener('click', handler);
       }
       function showNextFab(isFinal=false){
-        nextFab.textContent = isFinal ? "回首頁 ⭮" : "下一回合 ➜";
+        nextFab.textContent = isFinal ? "回首頁" : "下一回合";
         nextFab.style.display = "inline-block";
         nextFab.onclick = () => {
           nextFab.style.display = "none";
@@ -593,3 +593,4 @@
   </script>
 </body>
 </html>
+
