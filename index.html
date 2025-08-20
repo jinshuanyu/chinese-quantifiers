@@ -51,21 +51,18 @@
       background:#e0f2fe; border-radius:14px; box-shadow:0 4px 8px rgba(0,0,0,.08);
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       padding:.25rem .4rem; min-height:0;
+      touch-action:none; /* 讓整張卡片也能安全接觸控拖曳 */
     }
 
     /* 題目更大（emoji + 文字） */
-    .q-emoji{
-      font-size: clamp(28px, 6vw, 56px);
-      line-height: 1;
-      margin-bottom: .15rem;
-    }
+    .q-emoji{ font-size: clamp(28px, 6vw, 56px); line-height:1; margin-bottom:.15rem; }
     .q-line{
       display:flex; align-items:center; gap:.5rem;
-      font-weight: 800; color:#1f2937;
-      font-size: clamp(20px, 4.8vw, 28px); /* 一定比右欄選項大 */
+      font-weight:800; color:#1f2937;
+      font-size: clamp(20px, 4.8vw, 28px); /* 比右欄選項大 */
     }
 
-    /* 投放框：加大、可視回饋、手機好點 */
+    /* 投放框：可視回饋 */
     .drop-target{
       position:relative;
       width: clamp(46px, 8.2vw, 76px);
@@ -74,8 +71,7 @@
       display:flex; align-items:center; justify-content:center;
       transition: all .12s ease;
       font-size: clamp(18px, 3.6vw, 22px);
-      padding:0 .35rem; cursor:pointer;
-      touch-action:none; /* 手機拖拉修正 */
+      padding:0 .35rem; cursor:pointer; touch-action:none;
     }
     .drop-target.drag-over{
       background:#dbeafe; border-color:#2563eb; border-width:3px;
@@ -103,14 +99,11 @@
       display:flex; align-items:center; justify-content:center;
       user-select:none; cursor:grab; height:100%; width:100%;
       transition:transform .12s ease, background .12s ease, outline .12s ease;
-      touch-action:none; /* 手機拖拉修正 */
+      touch-action:none;
     }
     .quantifier-tile:active{ transform:scale(.96); }
     .quantifier-tile.hide-original{ opacity:0!important; width:0!important; height:0!important; overflow:hidden!important; pointer-events:none; }
-    .quantifier-tile.selected{
-      outline:3px solid #22c55e; outline-offset:2px; background:#fef08a;
-      cursor:pointer;
-    }
+    .quantifier-tile.selected{ outline:3px solid #22c55e; outline-offset:2px; background:#fef08a; cursor:pointer; }
 
     /* 中央提示卡 */
     #mini-toast{
@@ -124,8 +117,7 @@
     #mini-toast.show{ opacity:1; visibility:visible; transform:translate(-50%, -50%) scale(1); }
     #toast-text{ margin:0; font-size:clamp(18px,4.6vw,22px); line-height:1.4; font-weight:800; }
     #toast-ok{
-      width:100%; max-width:260px;
-      padding:10px 12px; border:none; border-radius:10px; cursor:pointer;
+      width:100%; max-width:260px; padding:10px 12px; border:none; border-radius:10px; cursor:pointer;
       background:#60a5fa; color:#fff; font-weight:800; font-size:15px;
     }
 
@@ -147,22 +139,18 @@
     @media (max-width:640px){
       .q-emoji{ font-size: clamp(36px, 11vw, 76px); }
       .q-line{  font-size: clamp(22px, 6.6vw, 34px); gap:.6rem; }
-
       .quantifier-tile{ font-size: clamp(18px, 5vw, 24px); }
-
       .drop-target{
         width: clamp(64px, 14vw, 104px);
         height: clamp(44px, 10vw, 72px);
         font-size: clamp(20px, 5vw, 24px);
         border-width:3px;
       }
-
       #toast-text{ font-size: clamp(20px, 6vw, 24px); }
     }
   </style>
 </head>
 <body>
-
   <!-- 首頁 -->
   <div id="title-screen" class="game-screen">
     <h1>量詞配對</h1>
@@ -172,7 +160,7 @@
 
   <!-- 遊戲主畫面 -->
   <div id="game-container" class="game-screen">
-    <!-- 這裡調整成三欄：回合 / 時間 / 分數 -->
+    <!-- 回合 / 時間 / 分數 -->
     <div class="w-full flex items-center mb-2" id="game-info">
       <div class="basis-1/3 font-bold text-gray-700">回合：<span id="current-round">0</span> / 12</div>
       <div class="basis-1/3 text-center font-bold text-gray-700">時間：<span id="timer">00:00</span></div>
@@ -195,90 +183,78 @@
 
   <script>
     window.onload = function () {
-      /* ====== 題庫（12 回合 × 4 題）====== */
+      /* ===== 題庫（12 回合 × 4 題） ===== */
       const gameData = [
-        // 1
         [
           { emoji:"🍬", prefix:"一", noun:"糖果", quantifier:"顆" },
-          { emoji:"🧋", prefix:"一", noun:"珍奶",   quantifier:"杯" },
-          { emoji:"🍌", prefix:"一", noun:"香蕉",   quantifier:"根" },
-          { emoji:"🪙", prefix:"一", noun:"硬幣",   quantifier:"枚" },
+          { emoji:"🧋", prefix:"一", noun:"珍奶", quantifier:"杯" },
+          { emoji:"🍌", prefix:"一", noun:"香蕉", quantifier:"根" },
+          { emoji:"🪙", prefix:"一", noun:"硬幣", quantifier:"枚" },
         ],
-        // 2
         [
-          { emoji:"🐮", prefix:"一", noun:"牛",   quantifier:"頭" },
-          { emoji:"🐟", prefix:"一", noun:"魚",   quantifier:"條" },
-          { emoji:"🐈", prefix:"一", noun:"貓",   quantifier:"隻" },
-          { emoji:"🐎", prefix:"一", noun:"馬",   quantifier:"匹" },
+          { emoji:"🐮", prefix:"一", noun:"牛", quantifier:"頭" },
+          { emoji:"🐟", prefix:"一", noun:"魚", quantifier:"條" },
+          { emoji:"🐈", prefix:"一", noun:"貓", quantifier:"隻" },
+          { emoji:"🐎", prefix:"一", noun:"馬", quantifier:"匹" },
         ],
-        // 3
         [
-          { emoji:"📖", prefix:"一", noun:"書",   quantifier:"本" },
+          { emoji:"📖", prefix:"一", noun:"書", quantifier:"本" },
           { emoji:"👩‍🏫", prefix:"一", noun:"老師", quantifier:"位" },
           { emoji:"🏫", prefix:"一", noun:"學校", quantifier:"所" },
-          { emoji:"🔔", prefix:"一", noun:"鐘",   quantifier:"口" },
+          { emoji:"🔔", prefix:"一", noun:"鐘", quantifier:"口" },
         ],
-        // 4
         [
           { emoji:"🚗", prefix:"一", noun:"汽車", quantifier:"輛" },
           { emoji:"🚂", prefix:"一", noun:"火車", quantifier:"列" },
           { emoji:"💺", prefix:"一", noun:"座位", quantifier:"個" },
-          { emoji:"🎫", prefix:"一", noun:"票",   quantifier:"張" },
+          { emoji:"🎫", prefix:"一", noun:"票", quantifier:"張" },
         ],
-        // 5
         [
-          { emoji:"🧱", prefix:"一", noun:"牆",   quantifier:"堵" },
-          { emoji:"🚪", prefix:"一", noun:"門",   quantifier:"扇" },
+          { emoji:"🧱", prefix:"一", noun:"牆", quantifier:"堵" },
+          { emoji:"🚪", prefix:"一", noun:"門", quantifier:"扇" },
           { emoji:"🪑", prefix:"一", noun:"椅子", quantifier:"張" },
-          { emoji:"🏪", prefix:"一", noun:"店",   quantifier:"家" },
+          { emoji:"🏪", prefix:"一", noun:"店", quantifier:"家" },
         ],
-        // 6
         [
-          { emoji:"🌾", prefix:"一", noun:"米",   quantifier:"粒" },
-          { emoji:"🍚", prefix:"一", noun:"飯",   quantifier:"碗" },
-          { emoji:"🥘", prefix:"一", noun:"菜",   quantifier:"道" },
+          { emoji:"🌾", prefix:"一", noun:"米", quantifier:"粒" },
+          { emoji:"🍚", prefix:"一", noun:"飯", quantifier:"碗" },
+          { emoji:"🥘", prefix:"一", noun:"菜", quantifier:"道" },
           { emoji:"🍴", prefix:"一", noun:"刀叉", quantifier:"副" },
         ],
-        // 7
         [
           { emoji:"🥢", prefix:"一", noun:"筷子", quantifier:"雙" },
-          { emoji:"💡", prefix:"一", noun:"燈",   quantifier:"盞" },
+          { emoji:"💡", prefix:"一", noun:"燈", quantifier:"盞" },
           { emoji:"🔑", prefix:"一", noun:"鑰匙", quantifier:"把" },
           { emoji:"🛏", prefix:"一", noun:"棉被", quantifier:"床" },
         ],
-        // 8
         [
-          { emoji:"✉️", prefix:"一", noun:"信",   quantifier:"封" },
+          { emoji:"✉️", prefix:"一", noun:"信", quantifier:"封" },
           { emoji:"📜", prefix:"一", noun:"文章", quantifier:"篇" },
           { emoji:"📰", prefix:"一", noun:"新聞", quantifier:"則" },
-          { emoji:"🎶", prefix:"一", noun:"歌",   quantifier:"首" },
+          { emoji:"🎶", prefix:"一", noun:"歌", quantifier:"首" },
         ],
-        // 9
         [
-          { emoji:"☁️", prefix:"一", noun:"雲",   quantifier:"朵" },
+          { emoji:"☁️", prefix:"一", noun:"雲", quantifier:"朵" },
           { emoji:"🌈", prefix:"一", noun:"彩虹", quantifier:"道" },
-          { emoji:"🌟", prefix:"一", noun:"星",   quantifier:"顆" },
+          { emoji:"🌟", prefix:"一", noun:"星", quantifier:"顆" },
           { emoji:"🌕", prefix:"一", noun:"明月", quantifier:"輪" },
         ],
-        // 10
         [
-          { emoji:"🙂", prefix:"一", noun:"臉",   quantifier:"張" },
+          { emoji:"🙂", prefix:"一", noun:"臉", quantifier:"張" },
           { emoji:"😢", prefix:"一", noun:"眼淚", quantifier:"滴" },
-          { emoji:"💬", prefix:"一", noun:"話",   quantifier:"句" },
-          { emoji:"♥️", prefix:"一", noun:"心",   quantifier:"顆" },
+          { emoji:"💬", prefix:"一", noun:"話", quantifier:"句" },
+          { emoji:"♥️", prefix:"一", noun:"心", quantifier:"顆" },
         ],
-        // 11
         [
           { emoji:"🛩", prefix:"一", noun:"飛機", quantifier:"架" },
-          { emoji:"🛶", prefix:"一", noun:"船",   quantifier:"艘" },
+          { emoji:"🛶", prefix:"一", noun:"船", quantifier:"艘" },
           { emoji:"🍃", prefix:"一", noun:"扁舟", quantifier:"葉" },
           { emoji:"🌬", prefix:"一", noun:"輕煙", quantifier:"縷" },
         ],
-        // 12
         [
-          { emoji:"🖼", prefix:"一", noun:"畫",   quantifier:"幅" },
-          { emoji:"📝", prefix:"一", noun:"詩",   quantifier:"首" },
-          { emoji:"🎭", prefix:"一", noun:"戲",   quantifier:"齣" },
+          { emoji:"🖼", prefix:"一", noun:"畫", quantifier:"幅" },
+          { emoji:"📝", prefix:"一", noun:"詩", quantifier:"首" },
+          { emoji:"🎭", prefix:"一", noun:"戲", quantifier:"齣" },
           { emoji:"😭", prefix:"兩", noun:"熱淚", quantifier:"行" },
         ],
       ];
@@ -287,86 +263,66 @@
       let score = 0;
       let answeredThisRound = 0;
 
-      // 計時
+      /* 計時 */
       let startTime = null, timerInterval = null;
       const timerSpan = document.getElementById("timer");
+      function pad2(n){ return n.toString().padStart(2,'0'); }
+      function formatShort(ms){
+        const t=Math.max(0,Math.floor(ms/1000)); const h=Math.floor(t/3600);
+        const m=Math.floor((t%3600)/60); const s=t%60;
+        return h>0?`${pad2(h)}:${pad2(m)}:${pad2(s)}`:`${pad2(m)}:${pad2(s)}`;
+      }
+      function formatLong(ms){
+        const t=Math.max(0,Math.floor(ms/1000)); const h=Math.floor(t/3600);
+        const m=Math.floor((t%3600)/60); const s=t%60;
+        if(h>0) return `${h} 小時 ${m} 分 ${s} 秒`;
+        if(m>0) return `${m} 分 ${s} 秒`;
+        return `${s} 秒`;
+      }
+      function startTimer(){ startTime=Date.now(); updateTimer(); timerInterval=setInterval(updateTimer,500); }
+      function stopTimer(){ if(timerInterval){clearInterval(timerInterval); timerInterval=null;} }
+      function getElapsedMs(){ return startTime ? (Date.now()-startTime) : 0; }
+      function updateTimer(){ timerSpan.textContent=formatShort(getElapsedMs()); }
 
+      /* Drag/Touch/Tap 狀態 */
       let activeDraggedDesktopElement = null;
-      // 觸控拖曳
       let currentTouchDraggedElement = null, touchVisualClone = null, currentTouchOffsetX = 0, currentTouchOffsetY = 0;
-      // 點按備援
       let selectedTile = null;
 
       const currentRoundSpan = document.getElementById("current-round");
       const scoreSpan = document.getElementById("score");
       const questionsContainer = document.getElementById("questions-container");
       const quantifiersPool = document.getElementById("quantifiers-pool");
-
       const gameContainer = document.getElementById("game-container");
       const titleScreen = document.getElementById("title-screen");
       const titleStartGameBtn = document.getElementById("title-start-game-btn");
-
-      // Toast & 下一回合
       const miniToast = document.getElementById("mini-toast");
       const toastText = document.getElementById("toast-text");
       const toastOk = document.getElementById("toast-ok");
       const nextFab = document.getElementById("next-round-fab");
 
-      // 音效
+      /* 音效 */
       const correctSynth = new Tone.PolySynth(Tone.Synth,{oscillator:{type:"sine"},envelope:{attack:0.005,decay:0.1,sustain:0.1,release:0.1}}).toDestination();
       const incorrectSynth = new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.01,decay:0.2,sustain:0.05,release:0.1}}).toDestination();
       const gameStartSynth = new Tone.Synth({oscillator:{type:"triangle"},envelope:{attack:0.05,decay:0.3,sustain:0.2,release:0.5}}).toDestination();
       const celebrateSynth = new Tone.Synth({oscillator:{type:"triangle"},envelope:{attack:0.01,decay:0.2,sustain:0.2,release:0.6}}).toDestination();
-
       function playCelebration(){
         try{
           correctSynth.triggerAttackRelease(["C5","E5","G5","C6"],"8n");
-          const seq = ["E5","G5","C6","E6"];
-          seq.forEach((n,i)=> setTimeout(()=> celebrateSynth.triggerAttackRelease(n,"8n"), 150 + i*170));
+          ["E5","G5","C6","E6"].forEach((n,i)=> setTimeout(()=> celebrateSynth.triggerAttackRelease(n,"8n"), 150 + i*170));
         }catch(e){}
       }
 
-      /* ===== 計時工具 ===== */
-      function pad2(n){ return n.toString().padStart(2,'0'); }
-      function formatShort(ms){
-        const t = Math.max(0, Math.floor(ms/1000));
-        const h = Math.floor(t/3600);
-        const m = Math.floor((t%3600)/60);
-        const s = t%60;
-        return h>0 ? `${pad2(h)}:${pad2(m)}:${pad2(s)}` : `${pad2(m)}:${pad2(s)}`;
-      }
-      function formatLong(ms){
-        const t = Math.max(0, Math.floor(ms/1000));
-        const h = Math.floor(t/3600);
-        const m = Math.floor((t%3600)/60);
-        const s = t%60;
-        if(h>0) return `${h} 小時 ${m} 分 ${s} 秒`;
-        if(m>0) return `${m} 分 ${s} 秒`;
-        return `${s} 秒`;
-      }
-      function startTimer(){
-        startTime = Date.now();
-        updateTimer();
-        timerInterval = setInterval(updateTimer, 500);
-      }
-      function stopTimer(){
-        if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
-      }
-      function getElapsedMs(){ return startTime ? (Date.now()-startTime) : 0; }
-      function updateTimer(){ timerSpan.textContent = formatShort(getElapsedMs()); }
-
+      /* 工具 */
+      function shuffleArray(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
       function showToast(message, onConfirm){
         toastText.innerHTML = message;
         miniToast.classList.add('show');
-        const handler = () => {
-          miniToast.classList.remove('show');
-          toastOk.removeEventListener('click', handler);
-          if (onConfirm) onConfirm();
-        };
+        const handler = ()=>{ miniToast.classList.remove('show'); toastOk.removeEventListener('click', handler); if(onConfirm) onConfirm(); };
         toastOk.addEventListener('click', handler);
       }
       function showNextFab(isFinal=false){
-        nextFab.textContent = isFinal ? "再挑戰一次" : "下一回合";
+        nextFab.textContent = isFinal ? "回首頁 ⭮" : "下一回合 ➜";
         nextFab.style.display = "inline-block";
         nextFab.onclick = () => {
           nextFab.style.display = "none";
@@ -378,24 +334,35 @@
           }
         };
       }
-      function shuffleArray(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
-
       function deselectTile(){
-        if(selectedTile){
-          selectedTile.classList.remove('selected');
-          selectedTile = null;
-          document.querySelectorAll('.drop-target').forEach(t=>t.classList.remove('ready'));
-        }
+        if(selectedTile){ selectedTile.classList.remove('selected'); selectedTile=null; document.querySelectorAll('.drop-target').forEach(t=>t.classList.remove('ready')); }
       }
       function selectTile(tile){
         if(selectedTile===tile){ deselectTile(); return; }
         if(selectedTile){ deselectTile(); }
-        selectedTile = tile;
-        tile.classList.add('selected');
+        selectedTile = tile; tile.classList.add('selected');
         document.querySelectorAll('.drop-target').forEach(t=>t.classList.add('ready'));
       }
+      function getDropTargetAtPoint(x,y){
+        let candidate=null;
+        // 先看題目整卡，再看原本小框
+        document.querySelectorAll('.q-card, .drop-target').forEach(node=>{
+          const r = node.getBoundingClientRect();
+          if(x>r.left && x<r.right && y>r.top && y<r.bottom){
+            if(node.classList.contains('q-card')){
+              const dt=node.querySelector('.drop-target');
+              if(dt) candidate=dt;
+            }else{
+              candidate=node;
+            }
+          }
+        });
+        return candidate;
+      }
 
+      /* 核心：放入量詞 */
       function handleQuantifierDrop(dropTarget, droppedQuantifier, originEl=null){
+        if(!dropTarget) return;
         if(dropTarget.textContent && dropTarget.textContent.trim().length>0) return;
 
         const correct = dropTarget.dataset.correctQuantifier;
@@ -415,20 +382,14 @@
 
           score += 10; scoreSpan.textContent = score;
 
-          dropTarget.removeEventListener('drop', handleDrop);
-          dropTarget.removeEventListener('dragover', handleDragOver);
-          dropTarget.removeEventListener('dragleave', handleDragLeave);
-
           correctSynth.triggerAttackRelease(["C5","E5","G5"],"8n");
 
           answeredThisRound++;
           if(answeredThisRound===4){
             if(currentRound===12){
-              // 全破：慶祝音效 + 指定訊息（含時間）
-              stopTimer();
-              playCelebration();
+              stopTimer(); playCelebration();
               const elapsed = getElapsedMs();
-              showToast(`🎉 恭喜過關！<br>你在 <b>${formatLong(elapsed)}</b> 內完成挑戰！`, () => showNextFab(true));
+              showToast(`🎉 恭喜你全部過關！<br>你在 <b>${formatLong(elapsed)}</b> 內全部過關了！`, () => showNextFab(true));
             }else{
               showToast("過關！太棒了！", () => showNextFab(false));
             }
@@ -444,19 +405,9 @@
       }
 
       /* 桌機拖曳 */
-      function handleDragStart(e){
-        activeDraggedDesktopElement = e.target;
-        e.dataTransfer.setData('text/plain', e.target.dataset.quantifier);
-        e.dataTransfer.effectAllowed = "move";
-      }
+      function handleDragStart(e){ activeDraggedDesktopElement = e.target; e.dataTransfer.setData('text/plain', e.target.dataset.quantifier); e.dataTransfer.effectAllowed="move"; }
       function handleDragEnd(){ activeDraggedDesktopElement=null; }
-      function handleDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect="move"; e.target.classList.add('drag-over'); }
-      function handleDragLeave(e){ e.target.classList.remove('drag-over'); }
-      function handleDrop(e){
-        e.preventDefault(); e.target.classList.remove('drag-over');
-        const q = e.dataTransfer.getData('text/plain');
-        handleQuantifierDrop(e.target, q, activeDraggedDesktopElement);
-      }
+      function handleDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect="move"; /* 由各容器自行加上 drag-over 視覺 */ }
 
       /* 手機拖曳 */
       function handleTouchStart(e){
@@ -491,31 +442,43 @@
         touchVisualClone.style.left = (t.clientX - currentTouchOffsetX) + 'px';
         touchVisualClone.style.top  = (t.clientY - currentTouchOffsetY) + 'px';
 
-        document.querySelectorAll('.drop-target').forEach(target=>{
-          const r = target.getBoundingClientRect();
-          if(t.clientX>r.left && t.clientX<r.right && t.clientY>r.top && t.clientY<r.bottom) target.classList.add('drag-over');
-          else target.classList.remove('drag-over');
-        });
+        // 清除既有高亮
+        document.querySelectorAll('.drop-target').forEach(dt=>dt.classList.remove('drag-over'));
+        // 找到「題目整卡 or 小框」對應的小框並高亮
+        const dt = getDropTargetAtPoint(t.clientX, t.clientY);
+        if(dt) dt.classList.add('drag-over');
       }
       function handleTouchEnd(e){
         e.preventDefault();
         if(!touchVisualClone) return;
         const t = e.changedTouches[0];
-        let dropped=false;
-        document.querySelectorAll('.drop-target').forEach(target=>{
-          target.classList.remove('drag-over');
-          const r = target.getBoundingClientRect();
-          if(!dropped && t.clientX>r.left && t.clientX<r.right && t.clientY>r.top && t.clientY<r.bottom){
-            handleQuantifierDrop(target, currentTouchDraggedElement.dataset.quantifier, currentTouchDraggedElement);
-            dropped=true;
+
+        // 清掉高亮
+        document.querySelectorAll('.drop-target').forEach(dt=>dt.classList.remove('drag-over'));
+
+        const dt = getDropTargetAtPoint(t.clientX, t.clientY);
+        if(dt){
+          handleQuantifierDrop(dt, currentTouchDraggedElement.dataset.quantifier, currentTouchDraggedElement);
+        }else{
+          // 沒投放成功，還原來源
+          if(currentTouchDraggedElement){
+            currentTouchDraggedElement.classList.remove('hide-original');
           }
-        });
-        if(touchVisualClone && touchVisualClone.parentNode) touchVisualClone.parentNode.removeChild(touchVisualClone);
-        touchVisualClone=null;
-        if(!dropped && currentTouchDraggedElement){
-          currentTouchDraggedElement.classList.remove('hide-original');
         }
-        currentTouchDraggedElement=null;
+        if(touchVisualClone && touchVisualClone.parentNode) touchVisualClone.parentNode.removeChild(touchVisualClone);
+        touchVisualClone=null; currentTouchDraggedElement=null;
+      }
+
+      function addTapHandlers(){
+        // 右欄：點一下選擇
+        document.querySelectorAll('.quantifier-tile').forEach(tile=>{
+          tile.addEventListener('click', ()=> selectTile(tile));
+        });
+        // 左欄：點一下「題目整卡」即可投放
+        document.querySelectorAll('.q-card').forEach(card=>{
+          const dt = card.querySelector('.drop-target');
+          card.addEventListener('click', ()=> { if(!selectedTile) return; handleQuantifierDrop(dt, selectedTile.dataset.quantifier, selectedTile); });
+        });
       }
 
       function initialize(){
@@ -529,52 +492,26 @@
 
       async function startGame(){
         try{ await Tone.start(); }catch(e){}
-        titleScreen.style.opacity='0';
-        titleScreen.style.pointerEvents='none';
-        setTimeout(()=>{
-          gameContainer.style.opacity='1';
-          gameContainer.style.pointerEvents='auto';
-        }, 300);
+        titleScreen.style.opacity='0'; titleScreen.style.pointerEvents='none';
+        setTimeout(()=>{ gameContainer.style.opacity='1'; gameContainer.style.pointerEvents='auto'; }, 300);
         try{ gameStartSynth.triggerAttackRelease("C5","8n"); }catch(e){}
-        initialize();
-        startTimer();
-        loadRound();
-      }
-
-      function addTapHandlers(){
-        // 右欄：點一下選擇
-        document.querySelectorAll('.quantifier-tile').forEach(tile=>{
-          tile.addEventListener('click', ()=> selectTile(tile));
-        });
-        // 左欄：點一下投放
-        document.querySelectorAll('.drop-target').forEach(target=>{
-          target.addEventListener('click', ()=> {
-            if(!selectedTile) return;
-            handleQuantifierDrop(target, selectedTile.dataset.quantifier, selectedTile);
-          });
-        });
+        initialize(); startTimer(); loadRound();
       }
 
       function loadRound(){
-        currentRound++;
-        currentRoundSpan.textContent=currentRound;
-        answeredThisRound=0;
-        questionsContainer.innerHTML=""; quantifiersPool.innerHTML="";
-        nextFab.style.display="none";
-        deselectTile();
+        currentRound++; currentRoundSpan.textContent=currentRound;
+        answeredThisRound=0; questionsContainer.innerHTML=""; quantifiersPool.innerHTML=""; nextFab.style.display="none"; deselectTile();
 
         if(currentRound>gameData.length){
-          // 如果不小心再進一步，也要安全收尾
-          stopTimer();
-          playCelebration();
+          stopTimer(); playCelebration();
           const elapsed = getElapsedMs();
-          showToast(`🎉 恭喜過關！<br>你在 <b>${formatLong(elapsed)}</b> 內完成挑戰！`, ()=> showNextFab(true));
+          showToast(`🎉 恭喜你全部過關！<br>你在 <b>${formatLong(elapsed)}</b> 內全部過關了！`, ()=> showNextFab(true));
           return;
         }
 
         const currentQuestions = [...gameData[currentRound-1]];
 
-        // 左欄 4 題
+        // 左欄 4 題（整卡可當成大型投放區）
         currentQuestions.forEach((q)=>{
           const card = document.createElement('div');
           card.className = 'q-card';
@@ -587,20 +524,32 @@
             </div>
           `;
           questionsContainer.appendChild(card);
-          const target = card.querySelector('.drop-target');
-          target.addEventListener('dragover', handleDragOver);
-          target.addEventListener('dragleave', handleDragLeave);
-          target.addEventListener('drop', handleDrop);
+
+          const dt = card.querySelector('.drop-target');
+
+          // 原本小框的 DnD
+          dt.addEventListener('dragover', e=>{ e.preventDefault(); dt.classList.add('drag-over'); });
+          dt.addEventListener('dragleave', e=>{ dt.classList.remove('drag-over'); });
+          dt.addEventListener('drop', e=>{
+            e.preventDefault(); dt.classList.remove('drag-over');
+            const qv = e.dataTransfer.getData('text/plain');
+            handleQuantifierDrop(dt, qv, activeDraggedDesktopElement);
+          });
+
+          // 整卡也可接：把視覺回饋代理到 dt
+          card.addEventListener('dragover', e=>{ e.preventDefault(); dt.classList.add('drag-over'); });
+          card.addEventListener('dragleave', e=>{ dt.classList.remove('drag-over'); });
+          card.addEventListener('drop', e=>{
+            e.preventDefault(); dt.classList.remove('drag-over');
+            const qv = e.dataTransfer.getData('text/plain');
+            handleQuantifierDrop(dt, qv, activeDraggedDesktopElement);
+          });
         });
 
         // 右欄：4 正確 + 1 干擾
         const correctQ = currentQuestions.map(q=>q.quantifier);
         const allQ = gameData.flat().map(q=>q.quantifier);
-        let distracter = null;
-        while(true){
-          const r = allQ[Math.floor(Math.random()*allQ.length)];
-          if(!correctQ.includes(r)){ distracter = r; break; }
-        }
+        let distracter=null; while(true){ const r=allQ[Math.floor(Math.random()*allQ.length)]; if(!correctQ.includes(r)){ distracter=r; break; } }
         const options = shuffleArray([...correctQ, distracter]);
 
         options.forEach(qf=>{
@@ -611,22 +560,25 @@
           tile.dataset.quantifier = qf;
           quantifiersPool.appendChild(tile);
 
+          // 桌機拖曳
           tile.addEventListener('dragstart', handleDragStart);
           tile.addEventListener('dragend', handleDragEnd);
+          // 手機拖曳
           tile.addEventListener('touchstart', handleTouchStart, {passive:false});
           tile.addEventListener('touchmove',  handleTouchMove,  {passive:false});
           tile.addEventListener('touchend',   handleTouchEnd,   {passive:false});
         });
 
-        // 點按備援啟用
+        // 點按備援
         addTapHandlers();
       }
 
-      titleStartGameBtn.addEventListener('click', startGame);
+      document.addEventListener('dragover', handleDragOver); // 允許全域 dragover 阻止預設
+      document.addEventListener('drop', e=>e.preventDefault()); // 避免把文字丟到頁面造成跳轉
+
+      document.getElementById('title-start-game-btn').addEventListener('click', startGame);
       initialize();
     };
   </script>
 </body>
 </html>
-
-
